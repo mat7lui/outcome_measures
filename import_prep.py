@@ -116,13 +116,13 @@ dts_df.sort_values(by=['name', 'assess_date'], inplace=True)
 camm_df.sort_values(by=['name', 'assess_date'], inplace=True)
 
 # Export all dataframes
-ders_df.to_csv(path_or_buf='U:/Outcome_Measures/Import_ready_files/ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ari_df.to_csv(path_or_buf='U:/Outcome_Measures/Import_ready_files/ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ceas_df.to_csv(path_or_buf='U:/Outcome_Measures/Import_ready_files/ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-dts_df.to_csv(path_or_buf='U:/Outcome_Measures/Import_ready_files/dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-camm_df.to_csv(path_or_buf='U:/Outcome_Measures/Import_ready_files/camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+ders_df.to_csv(path_or_buf='./Import_ready_files/ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+ari_df.to_csv(path_or_buf='./Import_ready_files/ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+ceas_df.to_csv(path_or_buf='./Import_ready_files/ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+dts_df.to_csv(path_or_buf='./Import_ready_files/dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+camm_df.to_csv(path_or_buf='./Import_ready_files/camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
 
 print('\nOpening window to exported files...dot..dot..dot..')
 time.sleep(2)
 
-os.startfile(r'U:/Outcome_Measures/Import_ready_files/')
+os.startfile(r'U:/Outcome_Measures/Import_ready_files')
