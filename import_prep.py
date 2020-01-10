@@ -23,14 +23,22 @@ import pandas as pd
 import os
 from datetime import datetime
 import time
+import sys
 
 # Required manual input from the user
 raw_file = input('Enter path to raw data file:\n')
-avatar_report_path = input('\nEnter path to Avatar Admissions Report:\n')
+avatar_report_path = input('Enter path to Avatar Admissions Report:\n')
 
 # Double-checking locations/files provided do indeed exist
-assert os.path.exists(raw_file), 'Path to raw file not found'
-assert os.path.exists(avatar_report_path), 'Path to Avatar file not found'
+while os.path.exists(raw_file) == False:
+    raw_file = input("Path not found. Please re-enter path to raw data or enter 'q' to exit program:\n")
+    if raw_file.lower() == 'q':
+        sys.exit()
+
+while os.path.exists(avatar_report_path) == False:
+    raw_file = input("Path not found. Please re-enter path to Avatar Admissions report or enter 'q' to exit program:\n")
+    if raw_file.lower() == 'q':
+        sys.exit()
 
 # Calling data_clean.py to convert raw data into a more narrow, useful format
 df = dc.clean_return(raw_file)
