@@ -1,18 +1,22 @@
+import os
 import pandas as pd
 
 def clean_return(import_file_location, dropna=True):
-    
-    if import_file_location.split('.')[1] == 'csv':
+    file_extension = os.path.basename(import_file_location).split('.')[1]
+
+    if file_extension == 'csv':
         dataframe = pd.read_csv(import_file_location)
     else:
         dataframe = pd.read_excel(import_file_location)
 
     dataframe.drop(labels=[
-        'Respondent ID', 'Collector ID', 'Start Date', 'End Date', 
+        'Respondent ID', 'Collector ID', 'End Date', 
         'IP Address', 'Email Address', 'First Name', 'Last Name', 'Custom Data 1', 
         'Program'], axis=1, inplace=True)
     dataframe.drop(0, inplace=True)
-
+    dataframe.iloc[:,3] = pd.to_datetime(dataframe.iloc[:,0])
+    dataframe.drop('Start Date', axis=1, inplace=True)
+    
     new_cols = [
         'first_name', 'last_name', 'assess_date', 'cottage', 
         'ders_1', 'ders_2', 'ders_3','ders_4','ders_5','ders_6','ders_7','ders_8','ders_9','ders_10','ders_11','ders_12','ders_13','ders_14','ders_15','ders_16',
@@ -29,13 +33,12 @@ def clean_return(import_file_location, dropna=True):
     dataframe.drop(['first_name', 'last_name', 'cottage'], axis=1, inplace=True)
 
     if dropna:
-        rows_before = dataframe.shape[0]
         dataframe.dropna(how='any', inplace=True)
-        rows_after = dataframe.shape[0]
-        print(f'NA rows dropped = {rows_before - rows_after}')
 
     dataframe['assess_date'] = pd.to_datetime(dataframe['assess_date'])
     dataframe.loc[:, "ders_1":] = dataframe.loc[:, "ders_1":].astype('float64')
+    dataframe.reset_index(drop=True, inplace=True)
+    dataframe.sort_values(by=["name", "assess_date"], inplace=True)
     
     return dataframe
 
