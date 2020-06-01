@@ -18,7 +18,7 @@ battery. These include:
 The program requires input from the user specifying the location of the raw data file which would have been 
 downloaded prior to runtime as well as a copy of an 'Admissions by Date Range' report from AVATAR. 
 '''
-import data_clean as dc
+import measure_tools as mt
 import pandas as pd
 import os
 from datetime import datetime
@@ -41,17 +41,14 @@ while os.path.exists(avatar_report_path) == False:
         sys.exit()
 
 # Calling data_clean.py to convert raw data into a more narrow, useful format
-df = dc.clean_return(raw_file)
-
-df.insert(loc=1, column='name', value=df['last_name'].str.strip(' ') + ',' + df['first_name'].str.strip(' '))
-df.drop(['first_name', 'last_name', 'cottage'], axis=1, inplace=True)
+df = mt.clean_return(raw_file)
 
 df = df.loc[df['name'].str.lower().sort_values().index]  # Case insensitive sorting in-place
 
 # Pulling together names, IDs, and episode numbers from Avatar report to pair with the data from Survey Monkey
 raw = pd.read_excel(avatar_report_path)
-raw.columns = raw.iloc[6]  # Resetting the columns headers to their correct values
-raw.drop([0,1,2,3,4,5,6], inplace=True)  # Getting rid of blank rows put in by Crystal Report formatting
+raw.columns = raw.iloc[4]  # Resetting the columns headers to their correct values
+raw.drop([0,1,2,3,4], inplace=True)  # Getting rid of blank rows put in by Crystal Report formatting
 raw = raw.loc[raw['Program'] == 'Residential Program']  # Selecting only clients admitted to the residential program. 
 
 # Re-sorting the dataframe so that the most recent admissions, the most likely to be the correct episode number for the client, will be near the top and the value captured for pairing with the data
@@ -84,12 +81,11 @@ for name in df['name']:
 df.insert(loc=1, column='ID', value=matched_ids)
 df.insert(loc=2, column='EPN', value=matched_episode)
 
-
 # List of columns to quickly separate data appropriately
 demo_cols = df.columns[:4]  # The 'name' column will need to be deleted before import, however names are needed to later manually fix 'No Match Found' errors
 ders_cols = [cols for cols in df.columns if 'ders' in cols]
 ari_cols = [cols for cols in df.columns if 'ari' in cols]
-ceas_cols = [cols for cols in df.columns if 'comp' in cols]
+ceas_cols = [cols for cols in df.columns if 'ceas' in cols]
 dts_cols = [cols for cols in df.columns if 'dts' in cols]
 camm_cols = [cols for cols in df.columns if 'camm' in cols]
 
