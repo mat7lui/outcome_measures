@@ -113,20 +113,28 @@ ceas_df.sort_values(by=['name', 'assess_date'], inplace=True)
 # DTS Final custom tweaks
 # dts_df.drop(labels='dts_6', axis=1, inplace=True)  # Removing reverse-scored question 6, which is not included in import template
 dts_df['status'] = 'D'
-dts_df.replace(to_replace={1: '10', 2:'15', 3:'20', 4:'25', 5:'30'}, inplace=True)  # Adjusting raw output scale from Survey Monkey to align with coding for import in Avatar
+# dts_df.replace(to_replace={1: '10', 2:'15', 3:'20', 4:'25', 5:'30'}, inplace=True)  # Adjusting raw output scale from Survey Monkey to align with coding for import in Avatar
 dts_df.sort_values(by=['name', 'assess_date'], inplace=True)
 
 # CAMM Final Custom Tweaks
 camm_df.sort_values(by=['name', 'assess_date'], inplace=True)
 
 # Export all dataframes
-ders_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ari_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ceas_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-dts_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-camm_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+# ders_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+# ari_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+# ceas_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+# dts_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+# camm_df.to_csv(path_or_buf=r'U:/Outcome_Measures/Import_ready_files/camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
 
-print('\nOpening window to exported files...dot..dot..dot..')
-time.sleep(2)
+ders_df.to_csv(path_or_buf=r'./data_dump/ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+ari_df.to_csv(path_or_buf=r'./data_dump/ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+ceas_df.to_csv(path_or_buf=r'./data_dump/ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+dts_df.to_csv(path_or_buf=r'./data_dump/dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
+camm_df.to_csv(path_or_buf=r'./data_dump/camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
 
-os.startfile(r'U:/Outcome_Measures/Import_ready_files')
+print(ders_df.sort_values(by="assess_date"))
+
+# print('\nOpening window to exported files...dot..dot..dot..')
+# time.sleep(2)
+
+# os.startfile(r'U:/Outcome_Measures/Import_ready_files')

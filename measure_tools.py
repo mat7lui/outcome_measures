@@ -14,7 +14,7 @@ def clean_return(import_file_location, dropna=True):
         'IP Address', 'Email Address', 'First Name', 'Last Name', 'Custom Data 1', 
         'Program'], axis=1, inplace=True)
     dataframe.drop(0, inplace=True)
-    dataframe.iloc[:,3] = pd.to_datetime(dataframe.iloc[:,0])
+    dataframe.iloc[:,3] = pd.to_datetime(dataframe.iloc[:,0]).dt.date
     dataframe.drop('Start Date', axis=1, inplace=True)
     
     new_cols = [
