@@ -40,7 +40,7 @@ while os.path.exists(avatar_report_path) == False:
     if raw_file.lower() == 'q':
         sys.exit()
 
-# Calling data_clean.py to convert raw data into a more narrow, useful format
+# Calling measure_tools.py to convert raw data into a more narrow, useful format
 df = mt.clean_return(raw_file)
 
 df = df.loc[df['name'].str.lower().sort_values().index]  # Case insensitive sorting in-place
@@ -111,7 +111,7 @@ ceas_df['status'] = 'D'
 ceas_df.sort_values(by=['name', 'assess_date'], inplace=True)
 
 # DTS Final custom tweaks
-dts_df.drop(labels='dts_6', axis=1, inplace=True)  # Removing reverse-scored question 6, which is not included in import template
+# dts_df.drop(labels='dts_6', axis=1, inplace=True)  # Removing reverse-scored question 6, which is not included in import template
 dts_df['status'] = 'D'
 dts_df.replace(to_replace={1: '10', 2:'15', 3:'20', 4:'25', 5:'30'}, inplace=True)  # Adjusting raw output scale from Survey Monkey to align with coding for import in Avatar
 dts_df.sort_values(by=['name', 'assess_date'], inplace=True)
