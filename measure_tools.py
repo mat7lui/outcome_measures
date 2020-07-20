@@ -1,7 +1,8 @@
 import os
 import pandas as pd
+from datetime import datetime
 
-def clean_return(import_file_location, dropna=True):
+def clean_data(import_file_location, dropna=True):
     file_extension = os.path.basename(import_file_location).split('.')[1]
 
     if file_extension == 'csv':
@@ -40,6 +41,25 @@ def clean_return(import_file_location, dropna=True):
     dataframe.reset_index(drop=True, inplace=True)
     dataframe.sort_values(by=["name", "assess_date"], inplace=True)
     
+    return dataframe
+
+def clean_avatar_report(avatar_report_path):
+    # Import and initial cleaning
+    dataframe = pd.read_excel(avatar_report_path)
+    dataframe.columns = dataframe.iloc[4]  # Resetting the columns headers to their correct values
+    dataframe.drop([0,1,2,3,4], inplace=True)  # Getting rid of blank rows put in by Crystal Report formatting
+    dataframe.dropna(axis=1, how="all", inplace=True)
+    
+    # Selecting only clients in residential/PHP program. 
+    dataframe = dataframe.loc[(dataframe['Program'] == 'Residential Program') | (dataframe['Program'] == 'PHP + Room and Board Program')]
+    
+    dataframe.sort_values(by='Adm Date', ascending=False, inplace=True)
+    dataframe = dataframe[["Client Name", "PID","Adm Date", "Disc. Date", "EPN", "Program"]]
+    dataframe["Adm Date"] = pd.to_datetime(dataframe["Adm Date"].dt.date)
+    dataframe["Disc. Date"].fillna(value=datetime.today(), inplace=True)
+    dataframe["Disc. Date"] = pd.to_datetime(dataframe["Disc. Date"].dt.date)
+    dataframe.columns = ["name", "pid", "adm_date", "disc_date", "epn", "program"]
+
     return dataframe
 
 def score_ders(dataframe):
