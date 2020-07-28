@@ -178,7 +178,7 @@ def score_camm(dataframe):
 
 def generate_scores(path_to_data):
     # Cleaning dataset to enable proper scoring in various functions
-    dataframe = clean_return(path_to_data)
+    dataframe = clean_data(path_to_data)
     
     # Calculating scores and returning each as a Series object
     ders_series = score_ders(dataframe)
