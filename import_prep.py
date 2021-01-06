@@ -25,7 +25,6 @@ import pandas as pd
 import os
 import platform
 from datetime import datetime
-import time
 import sys
 
 # Setting the destination for final files based on current computer operating system
@@ -36,19 +35,20 @@ else:
     output_path = r"/Users/mattlui/Desktop/outcome_measures/data_dump/"
     print(f"\nYOU ARE RUNNING THIS FILE ON MacOS. EXPORT LOCATION WILL BE: {output_path}")
 
-# DIRECTORY SPECIFICATION
-raw_file = input('Enter path to raw data file:\n')
-avatar_report_path = input('Enter path to Avatar Admissions Report:\n')
+# DIRECTORY SPECIFICATION & BATCH IDENTIFICATION
+batch_id = str(input("Please enter current batch number: "))
+raw_file = os.path.join(r"C:\Users\mlui-tankersley\Downloads", "batch_" + batch_id, "Excel","Outcome Measures.xlsx")
+avatar_report_path = os.path.join(r"U:\Outcome_Measures\avatar_admissions_reports", "batch_" + batch_id + ".xls")
 
 # DIRECTORY VALIDATION
 while os.path.exists(raw_file) == False:
-    raw_file = input("Path not found. Please re-enter path to raw data or enter 'q' to exit program:\n")
+    raw_file = input("Path not found. Please enter path to raw data or enter 'q' to exit program:\n")
     if raw_file.lower() == 'q':
         sys.exit()
 
 while os.path.exists(avatar_report_path) == False:
-    avatar_report_path = input("Path not found. Please re-enter path to Avatar Admissions report or enter 'q' to exit program:\n")
-    if raw_file.lower() == 'q':
+    avatar_report_path = input("Path not found. Please enter path to Avatar Admissions report or enter 'q' to exit program:\n")
+    if avatar_report_path.lower() == 'q':
         sys.exit()
 
 # DATA CLEANING
@@ -65,8 +65,9 @@ final = merged[(merged['adm_date']<=merged['assess_date']) & (merged['assess_dat
 
 # OUTPUT FORMAT SHAPING
 first_cols = ["name", "pid", "epn", "assess_date"]
-final = final[[col for col in final.columns if col in first_cols] + [col for col in final.columns if col not in first_cols]]
-# not_matched = not_matched[[col for col in final.columns if col in first_cols] + [col for col in final.columns if col not in first_cols]]
+final = final[["name", "pid", "epn", "assess_date"] + [col for col in final.columns if col not in first_cols]]
+not_matched.insert(loc=1, column="pid", value="Missing")
+not_matched.insert(loc=2, column="epn", value="Missing")
 
 demo_cols = final.columns[:4]
 ders_cols = [cols for cols in final.columns if 'ders' in cols]
@@ -112,10 +113,26 @@ dts_df.to_csv(path_or_buf=output_path + 'dts_'+ str(datetime.today().strftime('%
 camm_df.to_csv(path_or_buf=output_path + 'camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
 not_matched.to_csv(path_or_buf=output_path + 'not_matched_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
 
+name_errors = not_matched.shape[0]
+error_percent = name_errors / df.shape[0]
 
 if platform.system() == "Windows":
     print('\nOpening window to exported files...dot..dot..dot..')
-    time.sleep(2)
     os.startfile(r'U:/Outcome_Measures/Import_ready_files')
+
+    errors = {
+        "batch_date": datetime.today().date(),
+        "batch_number": batch_id,
+        "error_records": name_errors,
+        "matched_records": df.shape[0],
+        "error_ratio": error_percent
+    }
+    
+    errors = pd.DataFrame(errors, index=[0])
+
+    error_catalog = pd.read_excel("./Import_ready_files/error_catalog.xlsx", index_col=0)
+    error_catalog = pd.concat([error_catalog, errors], axis=0, ignore_index=True, sort=False)
+    error_catalog.to_excel("./Import_ready_files/error_catalog.xlsx", index=False)
+
 else:
     print(f"Processing completed. Output files dropped in {output_path}")

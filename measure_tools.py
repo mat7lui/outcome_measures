@@ -44,17 +44,21 @@ def clean_data(import_file_location, dropna=True):
     return dataframe
 
 def clean_avatar_report(avatar_report_path):
+    file_extension = os.path.basename(avatar_report_path).split('.')[1]
+    if file_extension == 'csv':
+        dataframe = pd.read_csv(avatar_report_path)
+    else:
+        dataframe = pd.read_excel(avatar_report_path)
     # Import and initial cleaning
-    dataframe = pd.read_excel(avatar_report_path)
-    dataframe.columns = dataframe.iloc[4]  # Resetting the columns headers to their correct values
-    dataframe.drop([0,1,2,3,4], inplace=True)  # Getting rid of blank rows put in by Crystal Report formatting
+    dataframe.columns = dataframe.iloc[5]  # Resetting the columns headers to their correct values
+    dataframe.drop([0,1,2,3,4,5], inplace=True)  # Getting rid of blank rows put in by Crystal Report formatting
     dataframe.dropna(axis=1, how="all", inplace=True)
     
     # Selecting only clients in residential/PHP program. 
     dataframe = dataframe.loc[(dataframe['Program'] == 'Residential Program') | (dataframe['Program'] == 'PHP + Room and Board Program')]
     
     dataframe.sort_values(by='Adm Date', ascending=False, inplace=True)
-    dataframe = dataframe[["Client Name", "PID","Adm Date", "Disc. Date", "EPN", "Program"]]
+    dataframe = dataframe[["Client Name", "PID","Adm Date", "Disc. Date", "EP#", "Program"]]
     dataframe["Adm Date"] = pd.to_datetime(dataframe["Adm Date"].dt.date)
     dataframe["Disc. Date"].fillna(value=datetime.today(), inplace=True)
     dataframe["Disc. Date"] = pd.to_datetime(dataframe["Disc. Date"].dt.date)
@@ -83,8 +87,7 @@ def score_ders(dataframe):
     Good score = LOWER
     Bad score = HIGHER
     '''
-
-    clarity = ["ders_1", "ders_2"]
+    clarity = ["ders_1", "ders_2"] 
     goals = ["ders_3", "ders_7", "ders_15"]
     impulse = ["ders_4", "ders_8", "ders_11"]
     strategies = ["ders_5", "ders_6", "ders_12", "ders_14", "ders_16"]
@@ -92,7 +95,14 @@ def score_ders(dataframe):
 
     columns = [col for col in dataframe.columns if "ders" in col]
     
-    return pd.Series(data=dataframe.loc[:, columns].sum(axis='columns'), name='overall_ders')
+    overall = pd.Series(data=dataframe.loc[:, columns].sum(axis='columns'), name='ders_overall')
+    clarity_score = pd.Series(data=dataframe.loc[:, clarity].sum(axis='columns'), name='ders_clarity')
+    goals_score = pd.Series(data=dataframe.loc[:, goals].sum(axis='columns'), name='ders_goals')
+    impulse_score = pd.Series(data=dataframe.loc[:, impulse].sum(axis='columns'), name='ders_impulse')
+    strategies_score = pd.Series(data=dataframe.loc[:, strategies].sum(axis='columns'), name='ders_strategies')
+    non_acceptance_score = pd.Series(data=dataframe.loc[:, non_acceptance].sum(axis='columns'), name='ders_nonacceptance')
+    
+    return (overall, clarity_score, goals_score, impulse_score, strategies_score, non_acceptance_score)
 
 def score_ari(dataframe):
     '''
@@ -138,13 +148,16 @@ def score_dts(dataframe):
     absorption = ['dts_2', 'dts_4', 'dts_15']
     regulation = ['dts_8', 'dts_13', 'dts_14']
 
-    tolerance_score = dataframe.loc[:, tolerance].mean(axis='columns')
-    appraisal_score = dataframe.loc[:, appraisal].mean(axis='columns')
-    absorption_score = dataframe.loc[:, absorption].mean(axis='columns')
-    regulation_score = dataframe.loc[:, regulation].mean(axis='columns')
-    overall_score = (tolerance_score + appraisal_score + absorption_score + regulation_score) / 4
+    # REVERSE SCORING QUESTION 6
+    dataframe["dts_6"].replace({1:5, 2:4, 4:2, 5:1}, inplace=True)
+
+    tolerance_score = pd.Series(data=dataframe.loc[:, tolerance].mean(axis='columns'), name="dts_tolerance")
+    appraisal_score = pd.Series(data=dataframe.loc[:, appraisal].mean(axis='columns'), name="dts_appraisal")
+    absorption_score = pd.Series(data=dataframe.loc[:, absorption].mean(axis='columns'), name="dts_absorption")
+    regulation_score = pd.Series(data=dataframe.loc[:, regulation].mean(axis='columns'), name="dts_regulation")
+    overall_score = pd.Series(data=(tolerance_score + appraisal_score + absorption_score + regulation_score) / 4, name="dts_overall")
     
-    return pd.Series(data=overall_score, name='dts')
+    return (overall_score, tolerance_score, appraisal_score, absorption_score, regulation_score)
 
 def score_ceas(dataframe):
     '''
@@ -193,18 +206,35 @@ def score_camm(dataframe):
     
     return pd.Series(data=dataframe.loc[:, columns].sum(axis='columns'), name='camm')
 
-def generate_scores(path_to_data):
+def generate_scores(datasource):
     # Cleaning dataset to enable proper scoring in various functions
-    dataframe = clean_data(path_to_data)
+    if isinstance(datasource, str):
+        dataframe = clean_data(datasource)
+    elif isinstance(datasource, pd.DataFrame):
+        dataframe = datasource
+    else:
+        print("Could not generate scores. Datasource was not directory or DataFrame object")
+        return None
     
     # Calculating scores and returning each as a Series object
-    ders_series = score_ders(dataframe)
+    ders_overall, clarity, goals, impulse, strategies, non_acceptance = score_ders(dataframe)
     ari_series = score_ari(dataframe)
-    ceas_self_series, ceas_to_series, ceas_from_series = score_ceas(dataframe)
-    dts_series = score_dts(dataframe)
+    ceas_self, ceas_to, ceas_from = score_ceas(dataframe)
+    dts_overall, tolerance, appraisal, absorption, regulation = score_dts(dataframe)
     camm_series = score_camm(dataframe)
     
     # Building scored DataFrame
-    dataframe = pd.concat([dataframe.loc[:,:"assess_date"],ders_series, ari_series, dts_series, ceas_self_series, ceas_to_series, ceas_from_series, camm_series], axis=1)
+    dataframe = pd.concat(
+        [dataframe.loc[:,:"assess_date"],
+        ders_overall, clarity, goals, impulse, strategies, non_acceptance, 
+        ari_series, 
+        dts_overall, tolerance, appraisal, absorption, regulation, 
+        ceas_self, ceas_to, ceas_from, 
+        camm_series], 
+        axis=1)
     
+    dataframe.sort_values(by=["name", "assess_date"], inplace=True)
+
     return dataframe
+
+# TODO add if __name__ == "__main__": segment to trigger function cascade to complete import prep process
