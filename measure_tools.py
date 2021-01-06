@@ -65,17 +65,34 @@ def clean_avatar_report(avatar_report_path):
 def score_ders(dataframe):
     '''
     SCORING METHODOLOGY:
-    DERS score is the sum of all 16 questions
+    The DERS has 5 recognized subscales:
+        - Clarity - lack of emotional clarity
+                QUESTIONS(1,2)
+        - Goals - difficulties engaging in goal-directed behavior 
+                QUESTIONS(3,7,15) 
+        - Impulse - impulse control difficulties
+                QUESTIONS(4,8,11)
+        - Strategies - limited access to emotion regulatioin strategies
+                QUESTIONS(5,6,12,14,16)
+        - Non-acceptance - non-acceptance of emotional responses
+                QUESTIONS(9,10,13)
     
     SCORING DETAILS:
-    Range of possible scores: 16-80
+    Range of scores vary on subscales
+    Range of possible OVERALL scores: 16-80
     Good score = LOWER
     Bad score = HIGHER
     '''
-    
+
+    clarity = ["ders_1", "ders_2"]
+    goals = ["ders_3", "ders_7", "ders_15"]
+    impulse = ["ders_4", "ders_8", "ders_11"]
+    strategies = ["ders_5", "ders_6", "ders_12", "ders_14", "ders_16"]
+    non_acceptance = ["ders_9", "ders_10", "ders_13"]
+
     columns = [col for col in dataframe.columns if "ders" in col]
     
-    return pd.Series(data=dataframe.loc[:, columns].sum(axis='columns'), name='ders')
+    return pd.Series(data=dataframe.loc[:, columns].sum(axis='columns'), name='overall_ders')
 
 def score_ari(dataframe):
     '''
@@ -144,7 +161,7 @@ def score_ceas(dataframe):
         Action = 4-40
         Component-level = 10-100    
     '''
-    
+
     ceas = dataframe.loc[:, [col for col in dataframe.columns if "ceas_" in col]]
     
     cols_to_drop = ['ceas_self_3', 'ceas_self_7', 'ceas_self_11',
