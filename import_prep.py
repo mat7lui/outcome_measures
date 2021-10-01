@@ -40,6 +40,10 @@ batch_id = str(input("Please enter current batch number: "))
 raw_file = os.path.join(r"C:\Users\mlui-tankersley\Downloads", "batch_" + batch_id, "Excel","Outcome Measures.xlsx")
 avatar_report_path = os.path.join(r"U:\Outcome_Measures\avatar_admissions_reports", "batch_" + batch_id + ".xls")
 
+# BACKUP DIRECTORY SPECIFICATION IN CASE SURVEY MONKEY DOES NOT INCLUDE AN 'EXCEL' FOLDER AFTER UN-ZIPPING DATA FILE
+if os.path.exists(raw_file) == False:
+    raw_file = os.path.join(r"C:\Users\mlui-tankersley\Downloads", "batch_" + batch_id,"Outcome Measures.xlsx")
+
 # DIRECTORY VALIDATION
 while os.path.exists(raw_file) == False:
     raw_file = input("Path not found. Please enter path to raw data or enter 'q' to exit program:\n")
@@ -56,83 +60,40 @@ df = clean_data(raw_file)
 avatar_df = clean_avatar_report(avatar_report_path)
 df = df.loc[df['name'].str.lower().sort_values().index]  # Case insensitive sorting in-place
 
-# MATCHING NAMES FROM SURVEY MONKEY WITH CLIENT IDS & EPISODE NUMBERS FROM AVATAR
-matched = df.loc[df["name"].isin(avatar_df["name"])]  # Names with a match found in the Avatar report
-not_matched = df.drop(labels=matched.index)  # Misspelled names 
+# Merging names with Avatar IDs and EPNs
+merged = df.merge(avatar_df, how="left", on="name")
+missing = merged.loc[merged["pid"].isnull()]
+matched = merged[(merged["adm_date"] <= merged["assess_date"]) & (merged["assess_date"] <= merged["disc_date"])]
 
-merged = matched.merge(avatar_df, how="left", on="name")  # Merging all data into 1 dataframe
-final = merged[(merged['adm_date']<=merged['assess_date']) & (merged['assess_date'] <= merged['disc_date'])]  # Isolating the right episode #
+# Combining the matches with the non-matches for hand review
+combined = pd.concat([missing, matched])
 
-# OUTPUT FORMAT SHAPING
-first_cols = ["name", "pid", "epn", "assess_date"]
-final = final[["name", "pid", "epn", "assess_date"] + [col for col in final.columns if col not in first_cols]]
-not_matched.insert(loc=1, column="pid", value="Missing")
-not_matched.insert(loc=2, column="epn", value="Missing")
+combined["ders_assessment_type"] = '15'
+combined["ders_draft_final"] = 'D'
+combined["ari_total"] = combined.loc[:,[col for col in combined.columns if "ari" in col]].astype("float64").sum(axis=1)
+combined["dts_status"] = 'D'
 
-demo_cols = final.columns[:4]
-ders_cols = [cols for cols in final.columns if 'ders' in cols]
-ari_cols = [cols for cols in final.columns if 'ari' in cols]
-ceas_cols = [cols for cols in final.columns if 'ceas' in cols]
-dts_cols = [cols for cols in final.columns if 'dts' in cols]
-camm_cols = [cols for cols in final.columns if 'camm' in cols]
+# Reorganizing dataframe into better column sequence & dropping CEAS columns from further analysis
+combined = combined[[
+    'name', 'pid', 'entered_id', 'epn', 'entered_epn', 'adm_date', 'assess_date', 'disc_date',
+    'ders_1', 'ders_2', 'ders_3', 'ders_4', 'ders_5', 'ders_6', 'ders_7', 'ders_8', 'ders_9', 'ders_10', 'ders_11', 'ders_12', 'ders_13', 'ders_14', 'ders_15', 'ders_16', 'ders_assessment_type', 'ders_draft_final', 
+    'ari_1', 'ari_2', 'ari_3', 'ari_4', 'ari_5', 'ari_6', 'ari_7', 'ari_total', 
+    'dts_1', 'dts_2', 'dts_3', 'dts_4', 'dts_5', 'dts_6', 'dts_7', 'dts_8', 'dts_9', 'dts_10', 'dts_11', 'dts_12', 'dts_13', 'dts_14', 'dts_15', 'dts_status',
+    'camm_1', 'camm_2', 'camm_3', 'camm_4', 'camm_5', 'camm_6', 'camm_7', 'camm_8', 'camm_9', 'camm_10']
+]
 
-# ASSESSMENT-LEVEL DFs
-ders_df = pd.concat([final.loc[:,demo_cols], final.loc[:,ders_cols]], axis=1)
-ari_df = pd.concat([final.loc[:,demo_cols], final.loc[:,ari_cols]], axis=1)
-ceas_df = pd.concat([final.loc[:,demo_cols], final.loc[:,ceas_cols]], axis=1)
-dts_df = pd.concat([final.loc[:,demo_cols], final.loc[:,dts_cols]], axis=1)
-camm_df = pd.concat([final.loc[:,demo_cols], final.loc[:,camm_cols]], axis=1)
+combined[["pid", "entered_id"]] = combined.loc[:, ["pid", "entered_id"]].astype("float64")  # Standardizing typing for numerical columns to enable boolean comparisons for matches
+combined.insert(loc=0, column='id_matched', value=combined['pid'] == combined['entered_id'])  # Avatar ID from algorithm matching and staff-entered values comparison
+combined.insert(loc=0, column='epn_matched', value=combined['epn'] == combined['entered_epn'])  # Avatar EPN from algorithm matching and staff-entered values comparison 
+combined.insert(loc=0, column="matched_all", value=(combined["id_matched"] & combined["epn_matched"]))
+combined.sort_values(by=['matched_all', 'id_matched','name'], inplace=True)
+combined.fillna(value="Missing", inplace=True)
 
-
-# DERS-16 Final custom tweaks
-ders_df['assessment_type'] = '15'
-ders_df['draft_final'] = 'D'
-ders_df.sort_values(by=['name', 'assess_date'], inplace=True)
-
-# ARI Final custom tweaks
-ari_df['Total'] = ari_df[ari_cols].astype('float64').sum(axis=1)  # Creating a score total column, per requirements from the Excel import template
-ari_df.sort_values(by=['name', 'assess_date'], inplace=True)
-
-# DTS Final custom tweaks
-dts_df['status'] = 'D'
-dts_df.sort_values(by=['name', 'assess_date'], inplace=True)
-
-# CEAS Final custom tweaks
-ceas_df['type'] = '15'
-ceas_df['status'] = 'D'
-ceas_df.sort_values(by=['name', 'assess_date'], inplace=True)
-
-# CAMM Final Custom Tweaks
-camm_df.sort_values(by=['name', 'assess_date'], inplace=True)
-
-# Export data to appropriate file location (based on operating system)
-ders_df.to_csv(path_or_buf=output_path + 'ders_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ari_df.to_csv(path_or_buf=output_path + 'ari_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-ceas_df.to_csv(path_or_buf=output_path + 'ceas_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-dts_df.to_csv(path_or_buf=output_path + 'dts_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-camm_df.to_csv(path_or_buf=output_path + 'camm_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-not_matched.to_csv(path_or_buf=output_path + 'not_matched_'+ str(datetime.today().strftime('%m.%d.%Y')) + '.csv', index=False)
-
-name_errors = not_matched.shape[0]
-error_percent = name_errors / df.shape[0]
+output_path = output_path + "batch_" + batch_id + "-" + str(datetime.today().strftime('%m.%d.%Y')) + '.csv'
+combined.to_csv(path_or_buf=output_path, index=False)
 
 if platform.system() == "Windows":
     print('\nOpening window to exported files...dot..dot..dot..')
     os.startfile(r'U:/Outcome_Measures/Import_ready_files')
-
-    errors = {
-        "batch_date": datetime.today().date(),
-        "batch_number": batch_id,
-        "error_records": name_errors,
-        "matched_records": df.shape[0],
-        "error_ratio": error_percent
-    }
-    
-    errors = pd.DataFrame(errors, index=[0])
-
-    error_catalog = pd.read_excel("./Import_ready_files/error_catalog.xlsx", index_col=0)
-    error_catalog = pd.concat([error_catalog, errors], axis=0, ignore_index=True, sort=False)
-    error_catalog.to_excel("./Import_ready_files/error_catalog.xlsx", index=False)
-
 else:
     print(f"Processing completed. Output files dropped in {output_path}")
